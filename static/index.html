@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Elasticsearch Autocomplete Demo</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      font-size: 16px;
+      margin-left: 20px;
+    }
+    .autocomplete {
+      /*the container must be positioned relative:*/
+      position: relative;
+      display: inline-block;
+    }
+    input {
+      border: 1px solid transparent;
+      background-color: #f1f1f1;
+      padding: 10px;
+      font-size: 16px;
+    }
+    input[type=text] {
+      background-color: #f1f1f1;
+      width: 100%;
+    }
+    input[type=submit] {
+      background-color: DodgerBlue;
+      color: #fff;
+    }
+    .autocomplete-items {
+      position: absolute;
+      border: 1px solid #d4d4d4;
+      border-bottom: none;
+      border-top: none;
+      z-index: 99;
+      /*position the autocomplete items to be the same width as the container:*/
+      top: 100%;
+      left: 0;
+      right: 0;
+    }
+    .autocomplete-items div {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #fff;
+      border-bottom: 1px solid #d4d4d4;
+    }
+    .autocomplete-items div:hover {
+      /*when hovering an item:*/
+      background-color: #e9e9e9;
+    }
+    .autocomplete-active {
+      /*when navigating through the items using the arrow keys:*/
+      background-color: DodgerBlue !important;
+      color: #ffffff;
+    }
+    #searchResult {
+      margin-top: 20px;
+      font-size: 16px;
+      width: 60%;
+    }
+    .logo {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40%;
+    }
+    .banner {
+      margin-top: 20px;
+      margin-bottom: 30px;
+      margin-left: -40px;
+    }
+    .spinner {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid DodgerBlue;
+      width: 20px;
+      height: 20px;
+      animation: spin 2s linear infinite;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+  <script>
+    function autocomplete(inp) {
+      var currentFocus;
+      inp.addEventListener("input", async function(e) {
+        var a, b, i, val = this.value;
+        closeAllLists();
+        if (!val) { return false; }
+        currentFocus = -1;
+  
+        try {
+          const response = await fetch(`/autocomplete?query=${encodeURIComponent(val)}`);
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          const arr = await response.json();
+
+          a = document.createElement("DIV");
+          a.setAttribute("id", this.id + "autocomplete-list");
+          a.setAttribute("class", "autocomplete-items");
+          this.parentNode.appendChild(a);
+  
+          for (i = 0; i < arr.length; i++) {
+            b = document.createElement("DIV");
+            b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+            b.innerHTML += arr[i].substr(val.length);
+            b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+            b.addEventListener("click", function(e) {
+              inp.value = this.getElementsByTagName("input")[0].value;
+              closeAllLists();
+            });
+            a.appendChild(b);
+          }
+        } catch (error) {
+          console.error('There has been a problem with your fetch operation:', error);
+        }
+      });
+  
+      inp.addEventListener("keydown", function(e) {
+        var x = document.getElementById(this.id + "autocomplete-list");
+        if (x) x = x.getElementsByTagName("div");
+        if (e.keyCode == 40) {
+          currentFocus++;
+          addActive(x);
+        } else if (e.keyCode == 38) {
+          currentFocus--;
+          addActive(x);
+        } else if (e.keyCode == 13) {
+          if (currentFocus > -1) {
+            e.preventDefault();
+            if (x) x[currentFocus].click();
+          }
+        }
+      });
+  
+      function addActive(x) {
+        if (!x) return false;
+        removeActive(x);
+        if (currentFocus >= x.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (x.length - 1);
+        x[currentFocus].classList.add("autocomplete-active");
+      }
+  
+      function removeActive(x) {
+        for (var i = 0; i < x.length; i++) {
+          x[i].classList.remove("autocomplete-active");
+        }
+      }
+  
+      function closeAllLists(elmnt) {
+        var x = document.getElementsByClassName("autocomplete-items");
+        for (var i = 0; i < x.length; i++) {
+          if (elmnt != x[i] && elmnt != inp) {
+            x[i].parentNode.removeChild(x[i]);
+          }
+        }
+      }
+  
+      document.addEventListener("click", function (e) {
+        closeAllLists(e.target);
+      });
+    }
+  
+    document.addEventListener("DOMContentLoaded", function() {
+      autocomplete(document.getElementById("searchInput"));
+    });
+
+    async function handleSearch(event) {
+      event.preventDefault();
+      const searchInput = document.getElementById("searchInput").value;
+      const spinner = document.getElementById("spinner");
+      spinner.style.display = 'inline-block'; // Show spinner
+      const response = await fetch('/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          searchInput: searchInput
+        })
+      });
+      const result = await response.json();
+      const searchResultDiv = document.getElementById("searchResult");
+      searchResultDiv.innerHTML = ''; // Clear previous results
+      spinner.style.display = 'none'; // Hide spinner
+
+      if (result.hits && result.hits.length > 0) {
+        result.hits.forEach(record => {
+          const recordDiv = document.createElement('div');
+          recordDiv.classList.add('record');
+
+          recordDiv.innerHTML = `
+            <div style="border-bottom: 1px solid #d4d4d4; padding: 10px 0;">
+              <h2 style="margin: 0; font-size: 18px; color: #1a0dab;">${record.title}</h2>
+              <p style="margin: 5px 0; font-size: 14px; color: #545454;">${record.profile.join(' ')}</p>
+              <p style="margin: 5px 0; font-size: 14px; color: #006621;"><strong>Specialty:</strong> ${record.specialty.join(', ')}</p>
+              <p style="margin: 5px 0; font-size: 14px; color: #006621;"><strong>Address:</strong> ${record.address.join(', ')}</p>
+              <p style="margin: 5px 0; font-size: 14px; color: #006621;"><strong>Gender:</strong> ${record.gender.join(', ')}</p>
+              <p style="margin: 5px 0; font-size: 14px; color: #006621;"><strong>Phone:</strong> ${record.phone.join(', ')}</p>
+              <p style="margin: 5px 0; font-size: 14px; color: #006621;"><strong>Age:</strong> ${record.age.join(', ')}</p>
+            </div>
+          `;
+
+          searchResultDiv.appendChild(recordDiv);
+        });
+      } else {
+        searchResultDiv.innerText = 'No results found.';
+      }
+    }
+  </script>
+  <link rel="alternate icon" type="image/png" href="/static/favicon.png"/>
+</head>
+<body>
+  <img src="/static/suggesters_banner.svg" alt="Suggester Banner" class="banner">
+  <img src="/static/suggesters_logo.svg" alt="Suggester Logo" class="logo">
+  <!--Make sure the form has the autocomplete function switched off:-->
+  <form onsubmit="handleSearch(event)">
+    <div class="autocomplete" style="width:300px;">
+      <input id="searchInput" type="text" name="searchInput" placeholder="Start typing for suggestions..." autocomplete="off">
+    </div>
+    <input type="submit" value="Search">
+    <div id="spinner" class="spinner"></div>
+  </form>
+  <div id="searchResult"></div>
+</body>
+</html>

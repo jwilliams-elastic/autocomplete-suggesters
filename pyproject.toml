@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "autocomplete-suggesters"
+version = "0.1.0"
+package-mode = false
+description = ""
+authors = ["James Williams <james.williams@elastic.co>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<=3.13"
+typer = "^0.15.1"
+elasticsearch = "^8.17.1"
+python-dotenv = "^1.0.1"
+uvicorn = "^0.34.0"
+python-multipart = "^0.0.20"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

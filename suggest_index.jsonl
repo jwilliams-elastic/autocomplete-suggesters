@@ -1,0 +1,4 @@
+{"title": "Cardiology", "suggest": { "input": ["heart doctor", "cardiologist near me", "heart specialist"], "weight": 20 }}
+{"title": "Emergency Medicine", "suggest": { "input": ["emergency room doctor", "ER physician near me", "urgent care specialist", "immediate care doctor - emergency"], "weight": 10}}
+{"title": "Family Medicine", "suggest": { "input": ["primary care doctor", "family physician near me", "general practitioner", "immediate care doctor - family"], "weight": 5 }}
+{"title": "General Medicine", "suggest": { "input": ["primary care doctor", "general physician near me", "general practitioner", "immediate care doctor - general"], "weight": 2 }}
